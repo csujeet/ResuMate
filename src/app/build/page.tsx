@@ -100,9 +100,13 @@ export default function BuildResumePage() {
     try {
       const result = await generateResumeFromForm(formattedData);
       setGeneratedResume(result);
+
+      // Automatically download the PDF.
+      handleDownloadPdf(result);
+      
       toast({
-        title: "Resume Generated!",
-        description: "Your resume has been created successfully. You can now download it.",
+        title: "Resume Generated & Downloaded!",
+        description: "Your resume has been created and your PDF download has started.",
       });
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     } catch (error) {
