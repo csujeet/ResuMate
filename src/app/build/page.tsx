@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -5,11 +6,13 @@ import Link from 'next/link';
 import { useForm, useFieldArray, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { ArrowLeft, PlusCircle, Trash2, Loader2, Download, ChevronDown } from 'lucide-react';
+
 import type { GenerateTailoredResumeOutput } from '@/ai/schemas';
 import { generateResumeFromForm } from '@/ai/flows/generate-resume-from-form';
 import { useToast } from '@/hooks/use-toast';
+import { handleDownloadDocx, handleDownloadPdf } from '@/lib/download';
 
-import { ArrowLeft, PlusCircle, Trash2, Loader2, Download, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -17,7 +20,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { handleDownloadDocx, handleDownloadPdf } from '@/lib/download';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Full name is required.'),
