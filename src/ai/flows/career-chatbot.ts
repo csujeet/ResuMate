@@ -57,14 +57,15 @@ const careerChatFlow = ai.defineFlow(
 3.  **Job Suggestions:** If a user asks for job suggestions instead of creating a resume, ask about their skills and interests to provide relevant roles.
 4.  **Completion:** When the user indicates they have provided all their information (e.g., "I'm done" or "that's everything"), you MUST parse the *entire* conversation history. Construct a complete, structured resume object according to the 'resumeData' schema.
 5.  **Final Message:** When you generate the 'resumeData', your 'response' MUST be a final confirmation message like: "Great! I've created your resume. You can now download it as a PDF."
-6.  **Important:** If the resume is not yet complete, you MUST NOT generate the 'resumeData' field.
+6.  **Important:** If the resume is not yet complete, you MUST NOT generate the 'resumeData' field.`;
 
-**Conversation So Far:**
-${messages.map((h) => `${h.role}: ${h.content}`).join('\n')}
-model:`;
+    const history = messages.slice(0, -1);
+    const lastMessage = messages[messages.length - 1];
 
     const result = await ai.generate({
-      prompt: systemPrompt,
+      system: systemPrompt,
+      history: history,
+      prompt: lastMessage.content,
       output: {
         format: 'json',
         schema: CareerChatOutputSchema,
