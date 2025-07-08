@@ -1,14 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import * as pdfjs from 'pdfjs-dist';
-import { Document as DocxDocument, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
-import jsPDF from 'jspdf';
-
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -21,8 +18,9 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { handleDownloadDocx, handleDownloadPdf } from '@/lib/download';
 
-import { ClipboardList, FileEdit, Wand2, UploadCloud, Download, Eye, FileText, ChevronDown, MessageSquare, Mail, Loader2 } from 'lucide-react';
+import { ClipboardList, FileEdit, Wand2, UploadCloud, Download, Eye, FileText, ChevronDown, MessageSquare, Mail, Loader2, FilePlus2 } from 'lucide-react';
 
 import { analyzeJobDescription } from '@/ai/flows/analyze-job-description';
 import { suggestResumeEdits } from '@/ai/flows/suggest-resume-edits';
@@ -167,11 +165,11 @@ export default function Home() {
   }
 
   const handleGenerateCoverLetter = async () => {
-    if (!tailoredResume || !form.getValues('jobDescription') || !form.getValues('resumeFile')) return;
+    if (!tailoredResume || !form.getValues('jobDescription')) return;
     setIsGeneratingCoverLetter(true);
     setCoverLetter(null);
     try {
-        const resumeText = await extractTextFromFile(form.getValues('resumeFile'));
+        const resumeText = tailoredResume.fullResumeText;
         const result = await generateCoverLetter({
             candidateName: tailoredResume.name,
             resumeText: resumeText,
@@ -204,264 +202,6 @@ export default function Home() {
       </ul>
     );
   };
-  
-  const handleDownloadDocx = async () => {
-    if (!tailoredResume) return;
-
-    const { name, candidateTitle, email, phone, linkedin, address, summary, workExperience, education, otherSections } = tailoredResume;
-    
-    const docChildren: Paragraph[] = [];
-
-    // Header
-    docChildren.push(new Paragraph({
-      children: [new TextRun({ text: name.toUpperCase(), bold: true, size: 48 })], // 24pt
-      alignment: AlignmentType.LEFT,
-      spacing: { after: 0 },
-    }));
-
-    if (candidateTitle) {
-      docChildren.push(new Paragraph({
-        children: [new TextRun({ text: candidateTitle.toUpperCase(), size: 22, color: "595959", characterSpacing: 2 * 20 })], // 11pt, gray, letter spacing
-        alignment: AlignmentType.LEFT,
-        spacing: { after: 120 }, // 6pt
-      }));
-    }
-
-    const contactInfo = [phone, email, linkedin, address].filter(Boolean).join(' / ');
-    docChildren.push(new Paragraph({
-      children: [new TextRun({ text: contactInfo, size: 20 })], // 10pt
-      alignment: AlignmentType.LEFT,
-      spacing: { after: 240 }, // 12pt
-    }));
-
-    const createSection = (title: string) => {
-      docChildren.push(new Paragraph({
-        children: [new TextRun({ text: title.toUpperCase(), bold: true, size: 22, color: "595959", characterSpacing: 2 * 20 })],
-        spacing: { after: 120, before: 120 },
-        border: { bottom: { color: "auto", space: 1, value: "single", size: 4 } },
-      }));
-      docChildren.push(new Paragraph({ text: "", spacing: { after: 80 }})); // Spacer after title line
-    };
-
-    // Summary Section
-    if (summary?.body) {
-      createSection(summary.title);
-      docChildren.push(new Paragraph({
-        children: [new TextRun({ text: summary.body, size: 20 })],
-      }));
-    }
-
-    // Work Experience
-    if (workExperience?.length > 0) {
-      createSection("Work Experience");
-      workExperience.forEach(job => {
-        docChildren.push(new Paragraph({
-          children: [new TextRun({ text: `${job.jobTitle} / ${job.company}`, bold: true, size: 22 })],
-          spacing: { before: 120 },
-        }));
-        docChildren.push(new Paragraph({
-          children: [new TextRun({ text: `${job.dates} / ${job.location}`, italics: true, size: 20 })],
-          spacing: { after: 60 },
-        }));
-        job.description.forEach(desc => {
-          docChildren.push(new Paragraph({
-            text: desc,
-            bullet: { level: 0 },
-            indent: { left: 720, hanging: 360 },
-            spacing: { after: 60 },
-          }));
-        });
-      });
-    }
-
-    // Education
-    if (education?.length > 0) {
-      createSection("Education");
-      education.forEach(edu => {
-        docChildren.push(new Paragraph({
-          children: [new TextRun({ text: edu.degree, bold: true, size: 22 })],
-          spacing: { before: 120 },
-        }));
-        const eduDetails = [edu.dates, edu.school, edu.location].filter(Boolean).join(' / ');
-        docChildren.push(new Paragraph({
-          children: [new TextRun({ text: eduDetails, size: 20 })],
-          spacing: { after: 60 },
-        }));
-        edu.details?.forEach(detail => {
-          docChildren.push(new Paragraph({
-            text: detail,
-            bullet: { level: 0 },
-            indent: { left: 720, hanging: 360 },
-            spacing: { after: 60 },
-          }));
-        });
-      });
-    }
-    
-    // Other Sections
-    otherSections?.forEach(section => {
-        createSection(section.title);
-        section.body.split('\n').forEach(line => {
-            docChildren.push(new Paragraph({
-                text: line.replace(/^[*-]\s*/, ''),
-                bullet: (line.startsWith('- ') || line.startsWith('* ')) ? { level: 0 } : undefined,
-                indent: (line.startsWith('- ') || line.startsWith('* ')) ? { left: 720, hanging: 360 } : undefined,
-                spacing: { after: 60 },
-            }));
-        });
-    });
-
-    const doc = new DocxDocument({ 
-        sections: [{ children: docChildren }],
-    });
-
-    const blob = await Packer.toBlob(doc);
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'tailored-resume.docx';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleDownloadPdf = () => {
-    if (!tailoredResume) return;
-
-    const { name, candidateTitle, email, phone, linkedin, address, summary, workExperience, education, otherSections } = tailoredResume;
-    const doc = new jsPDF('p', 'pt', 'a4');
-    const margin = 40;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let yPos = 40;
-    const lineSpacing = 1.2;
-    const sectionSpacing = 20;
-    
-    const checkPageBreak = (spaceNeeded: number) => {
-        if (yPos + spaceNeeded > doc.internal.pageSize.getHeight() - margin) {
-            doc.addPage();
-            yPos = margin;
-        }
-    };
-
-    // Header
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(24);
-    doc.text(name.toUpperCase(), margin, yPos);
-    yPos += 24;
-
-    if (candidateTitle) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(11);
-      doc.setTextColor(89, 89, 89);
-      doc.text(candidateTitle.toUpperCase(), margin, yPos, { charSpace: 2 });
-      yPos += 20;
-    }
-
-    const contactInfo = [phone, email, linkedin, address].filter(Boolean).join(' / ');
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    doc.text(contactInfo, margin, yPos);
-    yPos += sectionSpacing;
-
-    const printSectionTitle = (title: string) => {
-        checkPageBreak(30);
-        yPos += sectionSpacing / 2;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
-        doc.setTextColor(89, 89, 89);
-        doc.text(title.toUpperCase(), margin, yPos, { charSpace: 2 });
-        yPos += 8;
-        doc.setLineWidth(0.5);
-        doc.line(margin, yPos, pageWidth - margin, yPos);
-        yPos += 15;
-    };
-    
-    // Summary
-    if (summary?.body) {
-        printSectionTitle(summary.title);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        doc.setTextColor(0, 0, 0);
-        const summaryLines = doc.splitTextToSize(summary.body, pageWidth - margin * 2);
-        checkPageBreak(summaryLines.length * 10 * lineSpacing);
-        doc.text(summaryLines, margin, yPos);
-        yPos += summaryLines.length * 10 * lineSpacing;
-    }
-
-    // Work Experience
-    if (workExperience?.length > 0) {
-        printSectionTitle("Work Experience");
-        workExperience.forEach(job => {
-            checkPageBreak(60);
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(11);
-            doc.text(`${job.jobTitle} / ${job.company}`, margin, yPos);
-            yPos += 12;
-
-            doc.setFont('helvetica', 'italic');
-            doc.setFontSize(10);
-            doc.text(`${job.dates} / ${job.location}`, margin, yPos);
-            yPos += 15;
-
-            doc.setFont('helvetica', 'normal');
-            job.description.forEach(desc => {
-                const bulletPoint = `• ${desc}`;
-                const bulletLines = doc.splitTextToSize(bulletPoint, pageWidth - margin * 2 - 15);
-                checkPageBreak(bulletLines.length * 10 * lineSpacing);
-                doc.text(bulletLines, margin + 5, yPos);
-                yPos += (bulletLines.length * 10 * lineSpacing) + 2;
-            });
-            yPos += 10;
-        });
-    }
-
-    // Education
-    if (education?.length > 0) {
-        printSectionTitle("Education");
-        education.forEach(edu => {
-            checkPageBreak(40);
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(11);
-            doc.text(edu.degree, margin, yPos);
-            yPos += 12;
-            
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            const eduDetails = [edu.dates, edu.school, edu.location].filter(Boolean).join(' / ');
-            doc.text(eduDetails, margin, yPos);
-            yPos += 15;
-            
-            edu.details?.forEach(detail => {
-                const bulletPoint = `• ${detail}`;
-                const bulletLines = doc.splitTextToSize(bulletPoint, pageWidth - margin * 2 - 15);
-                checkPageBreak(bulletLines.length * 10 * lineSpacing);
-                doc.text(bulletLines, margin + 5, yPos);
-                yPos += (bulletLines.length * 10 * lineSpacing) + 2;
-            });
-             yPos += 10;
-        });
-    }
-
-    // Other Sections
-    otherSections?.forEach(section => {
-        printSectionTitle(section.title);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        section.body.split('\n').forEach(line => {
-            const isBullet = line.startsWith('- ') || line.startsWith('* ');
-            const text = isBullet ? `• ${line.substring(2)}` : line;
-            const indent = isBullet ? 5 : 0;
-            const textLines = doc.splitTextToSize(text, pageWidth - margin * 2 - indent);
-            checkPageBreak(textLines.length * 10 * lineSpacing);
-            doc.text(textLines, margin + indent, yPos);
-            yPos += (textLines.length * 10 * lineSpacing) + 2;
-        });
-    });
-
-
-    doc.save('tailored-resume.pdf');
-  };
 
   return (
     <main className="container mx-auto px-4 py-8 md:py-12">
@@ -476,13 +216,13 @@ export default function Home() {
       
       <Card className="mb-8 text-center">
         <CardHeader>
-          <CardTitle className="flex items-center justify-center"><MessageSquare className="mr-2 h-6 w-6" /> Create a Resume from Scratch</CardTitle>
-          <CardDescription>Don't have a resume? Let our AI chatbot guide you through creating one.</CardDescription>
+          <CardTitle className="flex items-center justify-center"><FilePlus2 className="mr-2 h-6 w-6" /> Create a Resume from Scratch</CardTitle>
+          <CardDescription>Don't have a resume? Fill out a form and our AI will build one for you.</CardDescription>
         </CardHeader>
         <CardFooter className="justify-center">
-          <Link href="/chatbot" passHref>
+          <Link href="/build" passHref>
             <Button variant="outline">
-              Start with Chatbot
+              Build a New Resume
             </Button>
           </Link>
         </CardFooter>
@@ -554,7 +294,7 @@ export default function Home() {
               
               <div className="text-center">
                 <Button type="submit" size="lg" disabled={isLoading}>
-                  <Wand2 className="mr-2 h-5 w-5" />
+                  {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Wand2 className="mr-2 h-5 w-5" />}
                   {isLoading ? 'Analyzing...' : 'Tailor My Resume'}
                 </Button>
               </div>
@@ -586,27 +326,9 @@ export default function Home() {
               )}
             </CardContent>
             <CardFooter className="flex-wrap gap-2">
-                <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="outline" disabled={!tailoredResume || isLoading}>
-                            <Eye className="mr-2" /> Preview Resume
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-3xl">
-                        <DialogHeader>
-                        <DialogTitle>Tailored Resume Preview</DialogTitle>
-                        <DialogDescription>
-                            Review the full text of your new resume. You can copy it from here.
-                        </DialogDescription>
-                        </DialogHeader>
-                        <ScrollArea className="h-[60vh] rounded-md border p-4">
-                            <pre className="text-sm whitespace-pre-wrap font-sans">{tailoredResume?.fullResumeText}</pre>
-                        </ScrollArea>
-                        <DialogFooter>
-                            <Button onClick={() => setIsPreviewDialogOpen(false)}>Close</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <Button variant="outline" disabled={!tailoredResume || isLoading} onClick={() => setIsPreviewDialogOpen(true)}>
+                    <Eye className="mr-2" /> Preview Resume
+                </Button>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button disabled={!tailoredResume || isLoading}>
@@ -614,8 +336,8 @@ export default function Home() {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                        <DropdownMenuItem onClick={handleDownloadDocx}>Download as DOCX</DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleDownloadPdf}>Download as PDF</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => tailoredResume && handleDownloadDocx(tailoredResume)}>Download as DOCX</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => tailoredResume && handleDownloadPdf(tailoredResume)}>Download as PDF</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
                  <Button onClick={handleGenerateCoverLetter} disabled={!tailoredResume || isLoading || isGeneratingCoverLetter} variant="outline">
@@ -666,6 +388,23 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
+          <DialogContent className="max-w-3xl">
+              <DialogHeader>
+              <DialogTitle>Tailored Resume Preview</DialogTitle>
+              <DialogDescription>
+                  Review the full text of your new resume. You can copy it from here.
+              </DialogDescription>
+              </DialogHeader>
+              <ScrollArea className="h-[60vh] rounded-md border p-4">
+                  <pre className="text-sm whitespace-pre-wrap font-sans">{tailoredResume?.fullResumeText}</pre>
+              </ScrollArea>
+              <DialogFooter>
+                  <Button onClick={() => setIsPreviewDialogOpen(false)}>Close</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
 
       <Dialog open={isCoverLetterDialogOpen} onOpenChange={setIsCoverLetterDialogOpen}>
           <DialogContent className="max-w-3xl">
