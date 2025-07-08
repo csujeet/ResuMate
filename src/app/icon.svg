@@ -1,0 +1,21 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Back paper -->
+  <path d="M20,15 L20,85 L60,85" stroke="black" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Front paper -->
+  <rect x="30" y="5" width="65" height="90" rx="5" fill="white" stroke="black" stroke-width="5"/>
+  
+  <!-- Person icon -->
+  <g fill="black">
+    <circle cx="62.5" cy="27.5" r="8"/>
+    <path d="M52.5,50 C52.5,40 72.5,40 72.5,50 Z" />
+  </g>
+  
+  <!-- Lines -->
+  <g fill="black">
+    <rect x="52.5" y="55" width="20" height="4" rx="2"/>
+    <rect x="52.5" y="65" width="20" height="4" rx="2"/>
+    <rect x="52.5" y="75" width="20" height="4" rx="2"/>
+    <rect x="52.5" y="85" width="15" height="4" rx="2"/>
+  </g>
+</svg>
