@@ -302,9 +302,9 @@ export default function Home() {
         createSection(section.title);
         section.body.split('\n').forEach(line => {
             docChildren.push(new Paragraph({
-                text: line.replace(/^- /, ''),
-                bullet: line.startsWith('- ') ? { level: 0 } : undefined,
-                indent: line.startsWith('- ') ? { left: 720, hanging: 360 } : undefined,
+                text: line.replace(/^[*-]\s*/, ''),
+                bullet: (line.startsWith('- ') || line.startsWith('* ')) ? { level: 0 } : undefined,
+                indent: (line.startsWith('- ') || line.startsWith('* ')) ? { left: 720, hanging: 360 } : undefined,
                 spacing: { after: 60 },
             }));
         });
@@ -448,7 +448,7 @@ export default function Home() {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
         section.body.split('\n').forEach(line => {
-            const isBullet = line.startsWith('- ');
+            const isBullet = line.startsWith('- ') || line.startsWith('* ');
             const text = isBullet ? `• ${line.substring(2)}` : line;
             const indent = isBullet ? 5 : 0;
             const textLines = doc.splitTextToSize(text, pageWidth - margin * 2 - indent);

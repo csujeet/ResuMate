@@ -9,6 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { GenerateTailoredResumeOutputSchema } from './generate-tailored-resume';
 
 const MessageSchema = z.object({
   role: z.enum(['user', 'model']),
@@ -23,6 +24,7 @@ export type CareerChatInput = z.infer<typeof CareerChatInputSchema>;
 
 const CareerChatOutputSchema = z.object({
   response: z.string().describe("The chatbot's response."),
+  resumeData: GenerateTailoredResumeOutputSchema.optional().describe("The structured resume data, generated when the user confirms the resume is complete."),
 });
 export type CareerChatOutput = z.infer<typeof CareerChatOutputSchema>;
 
@@ -43,7 +45,10 @@ Instructions:
 1.  If the user wants to create a resume, first ask for a target job description.
 2.  Then, guide them step-by-step to gather information: contact details, professional summary, work experience (job title, company, dates, responsibilities), education, and skills.
 3.  If the user asks for job suggestions, ask about their skills and interests to provide relevant roles.
-4.  Keep your responses concise, friendly, and helpful. Use markdown for lists. You MUST format your entire response as a single JSON object with a single key "response" that contains your text reply.
+4.  Keep your responses concise, friendly, and helpful. Use markdown for lists.
+5.  When the user indicates they have provided all the information (e.g., by saying "I'm done" or "that's everything"), you MUST parse the entire conversation history and construct a complete, structured resume object according to the 'resumeData' schema. The resume should follow a professional, standard format.
+6.  When you generate the 'resumeData', also provide a final confirmation message in the 'response' field, for example: "Great! I've created your resume. You can now download it as a PDF."
+7.  If the resume is not yet complete, you MUST NOT generate the 'resumeData' field.
 
 Conversation History:
 ${history.map((h) => `${h.role}: ${h.content}`).join('\n')}
