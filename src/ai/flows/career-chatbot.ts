@@ -9,7 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { GenerateTailoredResumeOutputSchema } from './generate-tailored-resume';
+import { GenerateTailoredResumeOutputSchema } from '@/ai/schemas';
 
 const MessageSchema = z.object({
   role: z.enum(['user', 'model']),

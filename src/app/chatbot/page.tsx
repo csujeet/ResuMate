@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { careerChat, type CareerChatInput } from '@/ai/flows/career-chatbot';
 import jsPDF from 'jspdf';
-import { type GenerateTailoredResumeOutput } from '@/ai/flows/generate-tailored-resume';
+import type { GenerateTailoredResumeOutput } from '@/ai/schemas';
 
 import { ArrowLeft, Bot, Send, User, Loader2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';

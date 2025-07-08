@@ -26,7 +26,8 @@ import { ClipboardList, FileEdit, Wand2, UploadCloud, Download, Eye, FileText, C
 
 import { analyzeJobDescription } from '@/ai/flows/analyze-job-description';
 import { suggestResumeEdits } from '@/ai/flows/suggest-resume-edits';
-import { generateTailoredResume, type GenerateTailoredResumeOutput } from '@/ai/flows/generate-tailored-resume';
+import { generateTailoredResume } from '@/ai/flows/generate-tailored-resume';
+import type { GenerateTailoredResumeOutput } from '@/ai/schemas';
 import { generateCoverLetter } from '@/ai/flows/generate-cover-letter';
 
 // This is needed for pdf.js-dist to work in the browser environment with Next.js
