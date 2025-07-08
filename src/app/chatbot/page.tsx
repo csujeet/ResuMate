@@ -184,18 +184,12 @@ export default function ChatbotPage() {
     const userMessage: Message = { role: 'user', content: input };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
-    const messageToSend = input;
     setInput('');
     setIsLoading(true);
     setGeneratedResume(null);
 
     try {
-      const history: CareerChatInput['history'] = messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
-
-      const result = await careerChat({ history, message: messageToSend });
+      const result = await careerChat({ messages: newMessages });
       const modelMessage: Message = { role: 'model', content: result.response };
       setMessages((prev) => [...prev, modelMessage]);
 
@@ -205,8 +199,7 @@ export default function ChatbotPage() {
 
     } catch (error) {
       console.error('Chatbot error:', error);
-      const originalMessages = messages;
-      setMessages([...originalMessages, {role: 'model', content: "Sorry, I ran into an error. Please try sending your message again."}]);
+      setMessages((prev) => [...prev, {role: 'model', content: "Sorry, I ran into an error. Please try sending your message again."}]);
        toast({
         title: 'An Error Occurred',
         description: 'The chatbot could not respond. Please try again.',
