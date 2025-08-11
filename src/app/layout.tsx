@@ -18,7 +18,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-      <meta name="google-adsense-account" content="ca-pub-1112506196784687">
       </head>
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         {children}
