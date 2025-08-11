@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Script from 'next/script';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -205,16 +204,7 @@ export default function Home() {
   };
 
   return (
-      <>
-        {/* Google AdSense Script - loads only on this page */}
-        <Script
-          id="adsense-script"
-          strategy="afterInteractive"
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1112506196784687"
-          crossOrigin="anonymous"
-        />
-        <main className="container mx-auto px-4 py-8 md:py-12">
+    <main className="container mx-auto px-4 py-8 md:py-12">
       <header className="text-center mb-10">
         <h1 className="text-4xl md:text-5xl font-bold font-headline bg-gradient-to-r from-primary to-accent text-transparent bg-clip-text">
           ResuMate
@@ -433,6 +423,5 @@ export default function Home() {
           </DialogContent>
       </Dialog>
     </main>
-    </>
   );
 }
